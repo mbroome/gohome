@@ -1,9 +1,0 @@
-package: github.com/mbroome/gohome
-import:
-- package: github.com/julienschmidt/httprouter
-- package: github.com/sirupsen/logrus
-- package: github.com/golang/glog
-- package: github.com/eclipse/paho.mqtt.golang
-- package: golang.org/x/net/websocket
-- package: golang.org/x/net/proxy
-- package: github.com/labstack/echo

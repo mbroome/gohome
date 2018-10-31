@@ -10,9 +10,6 @@ test: go_test
 
 build: go_build
 
-vendor: vendorprep vendorfull
-
-
 # Go targets
 #################
 
@@ -35,9 +32,6 @@ go_fmt:
 clean:
 	rm -f gohome
 
-vendorprep:
-	glide up -v --quick
-
-vendorfull:
-	glide up -v
+vendor:
+	dep ensure
 

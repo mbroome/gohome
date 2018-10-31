@@ -1,0 +1,6 @@
+*~
+vendor
+glide.lock
+dist
+bin/*
+gohome

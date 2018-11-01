@@ -11,7 +11,7 @@ This is known to work with golang 1.11 though it might work with other version
 ### deps
 ```shell
 cd $GOPATH/src/github.com/mbroome/gohome
-glide up -v
+make vendor
 ```
 
 ### build

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 	"sync"
+	"io/ioutil"
+
+	"encoding/json"
 
 	"github.com/golang/glog"
 	"github.com/julienschmidt/httprouter"
@@ -13,11 +16,16 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
+type DataPoint struct {
+	Value string `json:"value"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
 var configDir string
 var configBind string
 var _client MQTT.Client
 
-var dataMap map[string]string
+var dataMap map[string]DataPoint
 var mux sync.RWMutex
 
 func main() {
@@ -32,7 +40,7 @@ func main() {
 		configBind = "0.0.0.0:8080"
 	}
 
-	dataMap = make(map[string]string)
+	dataMap = make(map[string]DataPoint)
 
 	clientStop := make(chan struct{})
 	defer close(clientStop)
@@ -40,9 +48,9 @@ func main() {
 
 	router := httprouter.New()
 
-	router.GET("/*queue", queueGet)
-	router.POST("/*queue", queuePost)
-	//router.PUT("/*queue", queuePost)
+	router.GET("/topic/*queue", queueGet)
+	router.PUT("/topic/*queue", queuePut)
+	router.GET("/list/*queue", queueList)
 
 	glog.Fatal(http.ListenAndServe(configBind, router))
 
@@ -74,41 +82,65 @@ func mqttConnect(c chan struct{}) {
 }
 
 func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	var response string
+	var response []byte
 	topic := params.ByName("queue")
 
 	mux.RLock()
 	if len(topic) > 1{
-		response = string(dataMap[topic])
+		response, _ = json.Marshal(dataMap[topic])
 	}else{
-		response = fmt.Sprintf("%#v\n", dataMap)
+                response, _ = json.Marshal(dataMap)
 	}
 	mux.RUnlock()
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	fmt.Fprint(w, string(response))
+	w.Write(response)
 }
 
-func queuePost(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func queuePut(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
         topic := params.ByName("queue")
 
-	if len(topic) <= 1{
+        data, _ := ioutil.ReadAll(r.Body)
+
+	if len(topic) <= 1 {
 		w.WriteHeader(401)
 		fmt.Fprint(w, "denied")
 		return
 	}
 
-        message := "from gohome: " + time.Now().String()
-        _client.Publish(topic, 0, false, message)
+        _client.Publish(topic, 0, false, string(data))
 
+	w.Header().Set("Content-Type", "application/json")
         w.WriteHeader(200)
-        fmt.Fprint(w, "ok")
+        fmt.Fprint(w, "{\"status\":\"ok\"}")
+}
+
+func queueList(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	keys := []string{}
+        mux.RLock()
+	for k := range dataMap {
+ 		keys = append(keys, k)
+	}
+        mux.RUnlock()
+
+        out, err := json.Marshal(keys)
+        if err != nil {
+                panic(err)
+        }
+
+	w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(200)
+	w.Write(out)
 }
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {
-	fmt.Printf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+	var rec DataPoint
+	rec.Value = string(message.Payload())
+	rec.Timestamp = time.Now()
+
 	mux.RLock()
-	dataMap[message.Topic()] = string(message.Payload())
+	dataMap[message.Topic()] = rec
 	mux.RUnlock()
 }
 

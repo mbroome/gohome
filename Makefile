@@ -15,7 +15,8 @@ build: go_build
 
 go_build:
 	rm -f gohome
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOARM=6 go build -a -installsuffix cgo -ldflags '-w' -o gohome cmd/main.go
+	go build -o gohome cmd/main.go
+	#CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOARM=6 go build -a -installsuffix cgo -ldflags '-w' -o gohome cmd/main.go
 
 go_test:
 	go test $$(go list ./... | grep -v '/vendor/')

@@ -1,75 +1,114 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"time"
+	"sync"
+
+	"github.com/golang/glog"
+	"github.com/julienschmidt/httprouter"
 	"net/http"
-	"strconv"
 
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
-type (
-	user struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	}
-)
+var configDir string
+var configBind string
+var _client MQTT.Client
 
-var (
-	users = map[int]*user{}
-	seq   = 1
-)
-
-//----------
-// Handlers
-//----------
-
-func createUser(c echo.Context) error {
-	u := &user{
-		ID: seq,
-	}
-	if err := c.Bind(u); err != nil {
-		return err
-	}
-	users[u.ID] = u
-	seq++
-	return c.JSON(http.StatusCreated, u)
-}
-
-func getUser(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
-	return c.JSON(http.StatusOK, users[id])
-}
-
-func updateUser(c echo.Context) error {
-	u := new(user)
-	if err := c.Bind(u); err != nil {
-		return err
-	}
-	id, _ := strconv.Atoi(c.Param("id"))
-	users[id].Name = u.Name
-	return c.JSON(http.StatusOK, users[id])
-}
-
-func deleteUser(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
-	delete(users, id)
-	return c.NoContent(http.StatusNoContent)
-}
+var dataMap map[string]string
+var mux sync.RWMutex
 
 func main() {
-	e := echo.New()
+	flag.StringVar(&configDir, "config", "", "Path to config dir")
+	flag.StringVar(&configBind, "bind", "", "Interface:port to bind to")
+	flag.Parse()
 
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	if configDir == "" {
+		configDir = "/etc/config/exporters"
+	}
+	if configBind == "" {
+		configBind = "0.0.0.0:8080"
+	}
 
-	// Routes
-	e.POST("/users", createUser)
-	e.GET("/users/:id", getUser)
-	e.PUT("/users/:id", updateUser)
-	e.DELETE("/users/:id", deleteUser)
+	dataMap = make(map[string]string)
 
-	// Start server
-	e.Logger.Fatal(e.Start(":1323"))
+	clientStop := make(chan struct{})
+	defer close(clientStop)
+	go mqttConnect(clientStop)
+
+	router := httprouter.New()
+
+	router.GET("/*queue", queueGet)
+	router.POST("/*queue", queuePost)
+	//router.PUT("/*queue", queuePost)
+
+	glog.Fatal(http.ListenAndServe(configBind, router))
+
 }
+
+func mqttConnect(c chan struct{}) {
+	qos := 0
+	server := "tcp://127.0.0.1:1883"
+	clientid := "gohome"
+	topic := "#"
+
+	connOpts := MQTT.NewClientOptions().AddBroker(server).SetClientID(clientid).SetCleanSession(true)
+
+	connOpts.OnConnect = func(c MQTT.Client) {
+		if token := c.Subscribe(topic, byte(qos), onMessageReceived); token.Wait() && token.Error() != nil {
+			panic(token.Error())
+		}
+	}
+
+	_client = MQTT.NewClient(connOpts)
+	if token := _client.Connect(); token.Wait() && token.Error() != nil {
+		fmt.Println(token.Error())
+		return
+	}
+
+	fmt.Printf("Connected to %s\n", server)
+
+	<-c
+}
+
+func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	var response string
+	topic := params.ByName("queue")
+
+	mux.RLock()
+	if len(topic) > 1{
+		response = string(dataMap[topic])
+	}else{
+		response = fmt.Sprintf("%#v\n", dataMap)
+	}
+	mux.RUnlock()
+
+	w.WriteHeader(200)
+	fmt.Fprint(w, string(response))
+}
+
+func queuePost(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+        topic := params.ByName("queue")
+
+	if len(topic) <= 1{
+		w.WriteHeader(401)
+		fmt.Fprint(w, "denied")
+		return
+	}
+
+        message := "from gohome: " + time.Now().String()
+        _client.Publish(topic, 0, false, message)
+
+        w.WriteHeader(200)
+        fmt.Fprint(w, "ok")
+}
+
+func onMessageReceived(client MQTT.Client, message MQTT.Message) {
+	fmt.Printf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+	mux.RLock()
+	dataMap[message.Topic()] = string(message.Payload())
+	mux.RUnlock()
+}
+

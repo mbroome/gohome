@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"time"
-	"sync"
 	"io/ioutil"
+	"sync"
+	"time"
 
 	"encoding/json"
 
@@ -14,10 +14,12 @@ import (
 	"net/http"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+
+	"github.com/mbroome/gohome/pkg/persist"
 )
 
 type DataPoint struct {
-	Value string `json:"value"`
+	Value     string    `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -86,10 +88,10 @@ func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) 
 	topic := params.ByName("queue")
 
 	mux.RLock()
-	if len(topic) > 1{
+	if len(topic) > 1 {
 		response, _ = json.Marshal(dataMap[topic])
-	}else{
-                response, _ = json.Marshal(dataMap)
+	} else {
+		response, _ = json.Marshal(dataMap)
 	}
 	mux.RUnlock()
 
@@ -99,9 +101,9 @@ func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) 
 }
 
 func queuePut(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-        topic := params.ByName("queue")
+	topic := params.ByName("queue")
 
-        data, _ := ioutil.ReadAll(r.Body)
+	data, _ := ioutil.ReadAll(r.Body)
 
 	if len(topic) <= 1 {
 		w.WriteHeader(401)
@@ -109,28 +111,28 @@ func queuePut(w http.ResponseWriter, r *http.Request, params httprouter.Params) 
 		return
 	}
 
-        _client.Publish(topic, 0, false, string(data))
+	_client.Publish(topic, 0, false, string(data))
 
 	w.Header().Set("Content-Type", "application/json")
-        w.WriteHeader(200)
-        fmt.Fprint(w, "{\"status\":\"ok\"}")
+	w.WriteHeader(200)
+	fmt.Fprint(w, "{\"status\":\"ok\"}")
 }
 
 func queueList(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	keys := []string{}
-        mux.RLock()
+	mux.RLock()
 	for k := range dataMap {
- 		keys = append(keys, k)
+		keys = append(keys, k)
 	}
-        mux.RUnlock()
+	mux.RUnlock()
 
-        out, err := json.Marshal(keys)
-        if err != nil {
-                panic(err)
-        }
+	out, err := json.Marshal(keys)
+	if err != nil {
+		panic(err)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-        w.WriteHeader(200)
+	w.WriteHeader(200)
 	w.Write(out)
 }
 
@@ -141,6 +143,9 @@ func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 
 	mux.RLock()
 	dataMap[message.Topic()] = rec
+	if err := persist.Save("./file.tmp", dataMap); err != nil {
+		fmt.Print(err)
+	}
+
 	mux.RUnlock()
 }
-

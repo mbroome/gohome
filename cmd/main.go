@@ -19,6 +19,7 @@ import (
 )
 
 type DataPoint struct {
+	ID        string    `json:"id"`
 	Value     string    `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -60,7 +61,8 @@ func main() {
 
 func mqttConnect(c chan struct{}) {
 	qos := 0
-	server := "tcp://127.0.0.1:1883"
+	//server := "tcp://127.0.0.1:1883"
+	server := "tcp://192.168.1.79:1883"
 	clientid := "gohome"
 	topic := "#"
 
@@ -85,17 +87,29 @@ func mqttConnect(c chan struct{}) {
 
 func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	var response []byte
-	topic := params.ByName("queue")
+	var dataPoints []DataPoint
+	//topic := params.ByName("queue")
 
 	mux.RLock()
-	if len(topic) > 1 {
-		response, _ = json.Marshal(dataMap[topic])
-	} else {
-		response, _ = json.Marshal(dataMap)
+	for k := range dataMap {
+		dataPoints = append(dataPoints, dataMap[k])
 	}
 	mux.RUnlock()
 
+	response, _ = json.Marshal(dataPoints)
+
+	/*
+		mux.RLock()
+		if len(topic) > 1 {
+			response, _ = json.Marshal(dataMap[topic])
+		} else {
+			response, _ = json.Marshal(dataMap)
+		}
+		mux.RUnlock()
+	*/
+
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(200)
 	w.Write(response)
 }
@@ -140,9 +154,17 @@ func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 	var rec DataPoint
 	rec.Value = string(message.Payload())
 	rec.Timestamp = time.Now()
+	rec.ID = message.Topic()
 
 	mux.RLock()
-	dataMap[message.Topic()] = rec
+	//if dataMap[rec.ID] != nil {
+	if _, ok := dataMap[rec.ID]; ok {
+		if dataMap[rec.ID].Value != rec.Value {
+			fmt.Printf("Value changed: %s => %s\n", rec.ID, rec.Value)
+		}
+	}
+
+	dataMap[rec.ID] = rec
 	if err := persist.Save("./file.tmp", dataMap); err != nil {
 		fmt.Print(err)
 	}

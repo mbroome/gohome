@@ -4,3 +4,4 @@ glide.lock
 dist
 bin/*
 gohome
+ui/gohome/node_modules/*

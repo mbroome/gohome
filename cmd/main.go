@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
@@ -24,26 +25,51 @@ type DataPoint struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-var configDir string
+type DeviceResponseRecord struct {
+	Name      string    `json:"name"`
+	ID        string    `json:"id"`
+	Value     string    `json:"value"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type Config struct {
+	Devices []DeviceDetails `json:"devices"`
+}
+
+type DeviceDetails struct {
+	Name  string `json:"name"`
+	Write string `json:"write"`
+	Read  string `json:"read"`
+}
+
+var configFile string
 var configBind string
 var _client MQTT.Client
+var deviceConfig Config
 
 var dataMap map[string]DataPoint
 var mux sync.RWMutex
 
 func main() {
-	flag.StringVar(&configDir, "config", "", "Path to config dir")
+	flag.StringVar(&configFile, "config", "", "Path to config file")
 	flag.StringVar(&configBind, "bind", "", "Interface:port to bind to")
 	flag.Parse()
 
-	if configDir == "" {
-		configDir = "/etc/config/exporters"
+	if configFile == "" {
+		configFile = "config.json"
 	}
 	if configBind == "" {
 		configBind = "0.0.0.0:8080"
 	}
 
+	deviceConfig = LoadConfiguration(configFile)
+	fmt.Printf("%#v\n", deviceConfig)
+
 	dataMap = make(map[string]DataPoint)
+
+	if err := persist.Load("./file.tmp", &dataMap); err != nil {
+		fmt.Print(err)
+	}
 
 	clientStop := make(chan struct{})
 	defer close(clientStop)
@@ -87,12 +113,29 @@ func mqttConnect(c chan struct{}) {
 
 func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	var response []byte
-	var dataPoints []DataPoint
+	var dataPoints []DeviceResponseRecord
 	//topic := params.ByName("queue")
 
 	mux.RLock()
-	for k := range dataMap {
-		dataPoints = append(dataPoints, dataMap[k])
+	//for k := range dataMap {
+	//	dataPoints = append(dataPoints, dataMap[k])
+	//}
+	//mux.RUnlock()
+
+	for device := range deviceConfig.Devices {
+		//fmt.Printf("##### device: %s\n", deviceConfig.Devices[device].Read)
+		for point := range dataMap {
+			//fmt.Printf("##### point: %s\n", dataMap[point].ID)
+			if dataMap[point].ID == deviceConfig.Devices[device].Read {
+				//fmt.Printf("############ found a matched read field: %s\n", dataMap[point].ID)
+				var rr DeviceResponseRecord
+				rr.Name = deviceConfig.Devices[device].Name
+				rr.ID = dataMap[point].ID
+				rr.Value = dataMap[point].Value
+				rr.Timestamp = dataMap[point].Timestamp
+				dataPoints = append(dataPoints, rr)
+			}
+		}
 	}
 	mux.RUnlock()
 
@@ -170,4 +213,16 @@ func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 	}
 
 	mux.RUnlock()
+}
+
+func LoadConfiguration(file string) Config {
+	var config Config
+	configFile, err := os.Open(file)
+	defer configFile.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	jsonParser := json.NewDecoder(configFile)
+	jsonParser.Decode(&config)
+	return config
 }

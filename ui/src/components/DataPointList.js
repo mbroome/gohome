@@ -6,7 +6,7 @@ import DataPoint from "./DataPoint";
 
 function DataPointList(props) {
   return (
-    <div>{props.datapoints.map(c => <DataPoint key={c.id} name={c.name} value={c.value} timestamp={c.timestamp} group={c.group} />)}</div>
+    <div>{props.datapoints.map(c => <DataPoint key={c.id} id={c.id} name={c.name} value={c.value} timestamp={c.timestamp} group={c.group} type={c.type}/>)}</div>
   );
 }
 

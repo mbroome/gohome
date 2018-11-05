@@ -30,6 +30,7 @@ type DeviceResponseRecord struct {
 	ID        string    `json:"id"`
 	Value     string    `json:"value"`
 	Group     string    `json:"group"`
+	Type      string    `json:"type"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -42,6 +43,7 @@ type DeviceDetails struct {
 	Write string `json:"write"`
 	Read  string `json:"read"`
 	Group string `json:"group"`
+	Type  string `json:"type"`
 }
 
 var configFile string
@@ -81,6 +83,7 @@ func main() {
 
 	router.GET("/data", queueGet)
 	router.PUT("/command/*queue", queuePut)
+	router.OPTIONS("/command/*queue", queueOptions)
 	router.GET("/list/*queue", queueList)
 
 	glog.Fatal(http.ListenAndServe(configBind, router))
@@ -125,6 +128,16 @@ func mqttConnect(c chan struct{}) {
 	<-c
 }
 
+func queueOptions(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var response []byte
+	fmt.Printf("got an OPTIONS request")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "*")
+	w.WriteHeader(200)
+	w.Write(response)
+}
+
 func queueGet(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var response []byte
 	var dataPoints []DeviceResponseRecord
@@ -139,7 +152,12 @@ func queueGet(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 				var rr DeviceResponseRecord
 				rr.Name = deviceConfig.Devices[device].Name
 				rr.Group = deviceConfig.Devices[device].Group
-				rr.ID = dataMap[point].ID
+				rr.Type = deviceConfig.Devices[device].Type
+				if deviceConfig.Devices[device].Write != "" {
+					rr.ID = deviceConfig.Devices[device].Write
+				} else {
+					rr.ID = dataMap[point].ID
+				}
 				rr.Value = dataMap[point].Value
 				rr.Timestamp = dataMap[point].Timestamp
 				dataPoints = append(dataPoints, rr)
@@ -157,9 +175,12 @@ func queueGet(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func queuePut(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	fmt.Printf("got a queuePut request\n")
 	topic := params.ByName("queue")
 
+	fmt.Printf("queue put for topic: %s\n", topic)
 	data, _ := ioutil.ReadAll(r.Body)
+	fmt.Printf("data: %s\n", data)
 
 	if len(topic) <= 1 {
 		w.WriteHeader(401)
@@ -167,9 +188,20 @@ func queuePut(w http.ResponseWriter, r *http.Request, params httprouter.Params) 
 		return
 	}
 
-	_client.Publish(topic, 0, false, string(data))
+	if topic[0] == '/' {
+		fmt.Printf("before format: %s\n", topic)
+		fmt.Printf("new topic: %s\n", topic[1:len(topic)])
+		topic = topic[1:len(topic)]
+		fmt.Printf("after format: %s\n", topic)
+	}
+
+	fmt.Printf("posting to: %s value: %s\n", topic, string(data))
+
+	t := _client.Publish(string(topic), 0, false, string(data))
+	fmt.Printf("publish token: %#v\n", t)
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(200)
 	fmt.Fprint(w, "{\"status\":\"ok\"}")
 }
@@ -188,6 +220,7 @@ func queueList(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(200)
 	w.Write(out)
 }

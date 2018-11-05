@@ -27,11 +27,12 @@ class App extends Component {
                                                      name: response.data[i].name,
                                                      value: response.data[i].value,
                                                      group: response.data[i].group,
+                                                     type: response.data[i].type,
                                                      timestamp: response.data[i].timestamp
                                                    });
         }
 
-        //console.log(newDataPoints);
+        console.log(newDataPoints);
 
         // create a new "state" object without mutating
         // the original state object.

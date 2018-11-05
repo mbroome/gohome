@@ -85,6 +85,18 @@ func main() {
 
 }
 
+func LoadConfiguration(file string) Config {
+	var config Config
+	configFile, err := os.Open(file)
+	defer configFile.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	jsonParser := json.NewDecoder(configFile)
+	jsonParser.Decode(&config)
+	return config
+}
+
 func mqttConnect(c chan struct{}) {
 	qos := 0
 	//server := "tcp://127.0.0.1:1883"
@@ -117,11 +129,6 @@ func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) 
 	//topic := params.ByName("queue")
 
 	mux.RLock()
-	//for k := range dataMap {
-	//	dataPoints = append(dataPoints, dataMap[k])
-	//}
-	//mux.RUnlock()
-
 	for device := range deviceConfig.Devices {
 		//fmt.Printf("##### device: %s\n", deviceConfig.Devices[device].Read)
 		for point := range dataMap {
@@ -200,29 +207,24 @@ func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 	rec.ID = message.Topic()
 
 	mux.RLock()
-	//if dataMap[rec.ID] != nil {
-	if _, ok := dataMap[rec.ID]; ok {
-		if dataMap[rec.ID].Value != rec.Value {
-			fmt.Printf("Value changed: %s => %s\n", rec.ID, rec.Value)
+
+	for device := range deviceConfig.Devices {
+		//fmt.Printf("##### device: %s\n", deviceConfig.Devices[device].Read)
+		if (rec.ID == deviceConfig.Devices[device].Read) || (rec.ID == deviceConfig.Devices[device].Write) {
+
+			if _, ok := dataMap[rec.ID]; ok {
+				if dataMap[rec.ID].Value != rec.Value {
+					fmt.Printf("Value changed: %s => %s\n", rec.ID, rec.Value)
+				}
+			} else {
+				fmt.Printf("New value: %s => %s\n", rec.ID, rec.Value)
+			}
+
+			dataMap[rec.ID] = rec
+			if err := persist.Save("./file.tmp", dataMap); err != nil {
+				fmt.Print(err)
+			}
 		}
 	}
-
-	dataMap[rec.ID] = rec
-	if err := persist.Save("./file.tmp", dataMap); err != nil {
-		fmt.Print(err)
-	}
-
 	mux.RUnlock()
-}
-
-func LoadConfiguration(file string) Config {
-	var config Config
-	configFile, err := os.Open(file)
-	defer configFile.Close()
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	jsonParser := json.NewDecoder(configFile)
-	jsonParser.Decode(&config)
-	return config
 }

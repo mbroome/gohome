@@ -1,19 +1,19 @@
 import React from "react";
 import PropTypes from "prop-types";
-import "./Contact.css";
+import "./DataPoint.css";
 
-function Contact(props) {
+function DataPoint(props) {
   return (
-    <div className="contact">
-      <span>{props.name} => {props.value} => {props.timestamp} </span>
+    <div className="datapoint">
+      <span>{props.name} => {props.value} => {props.group}</span>
     </div>
   );
 }
 
-Contact.propTypes = {
+DataPoint.propTypes = {
   name: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
   timestamp: PropTypes.string.isRequired
 };
 
-export default Contact;
+export default DataPoint;

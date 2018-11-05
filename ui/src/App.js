@@ -1,36 +1,41 @@
 import React, { Component } from "react";
+import { Column, Row } from 'simple-flexbox';
 import "./App.css";
 
 import axios from "axios";
 
-import ContactList from "./components/ContactList";
+import DataPointList from "./components/DataPointList";
 
 class App extends Component {
   // default state object
   state = {
-    contacts: []
+    datapoints: []
   };
 
   //async loadData() {
   loadData() {
     axios
       //.get("https://jsonplaceholder.typicode.com/users")
-      .get("http://192.168.1.80:8080/topic/")
+      .get("http://192.168.1.80:8080/data")
       .then(response => {
-        // create an array of contacts only with relevant data
-        const newContacts = response.data.map(c => {
-          return {
-            id: c.id,
-            name: c.name,
-            value: c.value,
-            timestamp: c.timestamp
-          };
-        });
+        var newDataPoints = {};
+        for(var i = 0, l = response.data.length; i < l; i++) {
+           !(response.data[i].group in newDataPoints) && (newDataPoints[response.data[i].group] = [])
+           newDataPoints[response.data[i].group].push({
+                                                     id: response.data[i].id,
+                                                     name: response.data[i].name,
+                                                     value: response.data[i].value,
+                                                     group: response.data[i].group,
+                                                     timestamp: response.data[i].timestamp
+                                                   });
+        }
+
+        //console.log(newDataPoints);
 
         // create a new "state" object without mutating
         // the original state object.
         const newState = Object.assign({}, this.state, {
-          contacts: newContacts
+           datapoints: newDataPoints
         });
 
         // store the new state object in the component's state
@@ -47,8 +52,20 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-        <ContactList contacts={this.state.contacts} />
+      <Column flexGrow={1}>
+          <Row horizontal='center'>
+              <h1>HEADER</h1>
+          </Row>
+          <Row vertical='start'>
+             {Object.entries(this.state.datapoints).map(([key, value]) => (
+                <Column flexGrow={1} key={key} horizontal='center'>
+                  <DataPointList key={key} datapoints={value} />
+                </Column>
+             ))}
+          </Row>
+      </Column>
       </div>
+
     );
   }
 }

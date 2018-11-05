@@ -29,6 +29,7 @@ type DeviceResponseRecord struct {
 	Name      string    `json:"name"`
 	ID        string    `json:"id"`
 	Value     string    `json:"value"`
+	Group     string    `json:"group"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -40,6 +41,7 @@ type DeviceDetails struct {
 	Name  string `json:"name"`
 	Write string `json:"write"`
 	Read  string `json:"read"`
+	Group string `json:"group"`
 }
 
 var configFile string
@@ -77,8 +79,8 @@ func main() {
 
 	router := httprouter.New()
 
-	router.GET("/topic/*queue", queueGet)
-	router.PUT("/topic/*queue", queuePut)
+	router.GET("/data", queueGet)
+	router.PUT("/command/*queue", queuePut)
 	router.GET("/list/*queue", queueList)
 
 	glog.Fatal(http.ListenAndServe(configBind, router))
@@ -123,10 +125,9 @@ func mqttConnect(c chan struct{}) {
 	<-c
 }
 
-func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func queueGet(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var response []byte
 	var dataPoints []DeviceResponseRecord
-	//topic := params.ByName("queue")
 
 	mux.RLock()
 	for device := range deviceConfig.Devices {
@@ -137,6 +138,7 @@ func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) 
 				//fmt.Printf("############ found a matched read field: %s\n", dataMap[point].ID)
 				var rr DeviceResponseRecord
 				rr.Name = deviceConfig.Devices[device].Name
+				rr.Group = deviceConfig.Devices[device].Group
 				rr.ID = dataMap[point].ID
 				rr.Value = dataMap[point].Value
 				rr.Timestamp = dataMap[point].Timestamp
@@ -147,16 +149,6 @@ func queueGet(w http.ResponseWriter, r *http.Request, params httprouter.Params) 
 	mux.RUnlock()
 
 	response, _ = json.Marshal(dataPoints)
-
-	/*
-		mux.RLock()
-		if len(topic) > 1 {
-			response, _ = json.Marshal(dataMap[topic])
-		} else {
-			response, _ = json.Marshal(dataMap)
-		}
-		mux.RUnlock()
-	*/
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")

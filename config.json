@@ -3,117 +3,140 @@
         {
            "name": "FishRoomTemp",
            "write": "",
-           "read": "mygateway1-out/7/9/1/0/0"
+           "read": "mygateway1-out/7/9/1/0/0",
+           "group": "temperature"
         },
         {
            "name": "FishRoomHumidity",
            "write": "",
-           "read": "mygateway1-out/7/0/1/0/1"
+           "read": "mygateway1-out/7/0/1/0/1",
+           "group": "temperature"
         },
         {
            "name": "FishRoomWaterFill",
            "write": "cmnd/sonoff1/POWER2",
-           "read": "stat/sonoff1/POWER2"
+           "read": "stat/sonoff1/POWER2",
+           "group": "controls"
         },
         {
            "name": "FishRoomZone1",
            "write": "cmnd/sonoff1/POWER3",
-           "read": "stat/sonoff1/POWER3"
+           "read": "stat/sonoff1/POWER3",
+           "group": "zones"
         },
         {
            "name": "FishRoomZone2",
            "write": "cmnd/sonoff1/POWER4",
-           "read": "stat/sonoff1/POWER4"
+           "read": "stat/sonoff1/POWER4",
+           "group": "zones"
         },
         {
            "name": "FishRoomZone3",
            "write": "cmnd/sonoff2/POWER1",
-           "read": "stat/sonoff2/POWER1"
+           "read": "stat/sonoff2/POWER1",
+           "group": "zones"
         },
         {
            "name": "FishRoomZone4",
            "write": "cmnd/sonoff2/POWER2",
-           "read": "stat/sonoff2/POWER2"
+           "read": "stat/sonoff2/POWER2",
+           "group": "zones"
         },
         {
            "name": "FishRoomZone5",
            "write": "cmnd/sonoff2/POWER3",
-           "read": "stat/sonoff2/POWER3"
+           "read": "stat/sonoff2/POWER3",
+           "group": "zones"
         },
         {
            "name": "FishRoomZone6",
            "write": "cmnd/sonoff2/POWER4",
-           "read": "stat/sonoff2/POWER4"
+           "read": "stat/sonoff2/POWER4",
+           "group": "zones"
         },
         {
            "name": "FishRoomLights1",
            "write": "cmnd/sonoff3/POWER1",
-           "read": "stat/sonoff3/POWER1"
+           "read": "stat/sonoff3/POWER1",
+           "group": "lights"
         },
         {
            "name": "FishRoomLights2",
            "write": "cmnd/sonoff3/POWER2",
-           "read": "stat/sonoff3/POWER2"
+           "read": "stat/sonoff3/POWER2",
+           "group": "lights"
         },
         {
            "name": "FishRoomZone7",
            "write": "cmnd/sonoff3/POWER4",
-           "read": "stat/sonoff3/POWER4"
+           "read": "stat/sonoff3/POWER4",
+           "group": "zones"
         },
         {
            "name": "FishRoomCeilingFan",
            "write": "cmnd/sonoff4/POWER1",
-           "read": "stat/sonoff4/POWER1"
+           "read": "stat/sonoff4/POWER1",
+           "group": "env"
         },
         {
            "name": "FishRoom110Lights",
            "write": "cmnd/sonoff4/POWER2",
-           "read": "stat/sonoff4/POWER2"
+           "read": "stat/sonoff4/POWER2",
+           "group": "lights"
         },
         {
            "name": "FishRoomHeater",
            "write": "cmnd/sonoff4/POWER3",
-           "read": "stat/sonoff4/POWER3"
+           "read": "stat/sonoff4/POWER3",
+           "group": "env"
         },
         {
            "name": "FishRoomExaustFan",
            "write": "cmnd/sonoff4/POWER4:",
-           "read": "stat/sonoff4/POWER4"
+           "read": "stat/sonoff4/POWER4",
+           "group": "env"
         },
         {
            "name": "FishRoomLights3",
            "write": "cmnd/sonoff-s2/POWER1",
-           "read": "stat/sonoff-s2/POWER1"
+           "read": "stat/sonoff-s2/POWER1",
+           "group": "lights"
         },
         {
            "name": "FishRoomInputFan",
            "write": "cmnd/sonoff-s4/POWER1",
-           "read": "stat/sonoff-s4/POWER1"
+           "read": "stat/sonoff-s4/POWER1",
+           "group": "env"
         },
         {
            "name": "FishRoomZone8",
            "write": "cmnd/sonoff5/POWER1",
-           "read": "stat/sonoff5/POWER1"
+           "read": "stat/sonoff5/POWER1",
+           "group": "zones"
         },
         {
            "name": "FishRoomZone9",
            "write": "cmnd/sonoff5/POWER2",
-           "read": "stat/sonoff5/POWER2"
+           "read": "stat/sonoff5/POWER2",
+           "group": "zones"
         },
         {
            "name": "FishRoomLights8",
            "write": "cmnd/sonoff5/POWER3",
-           "read": "stat/sonoff5/POWER3"
+           "read": "stat/sonoff5/POWER3",
+           "group": "lights"
         },
         {
            "name": "FishRoomLights9",
            "write": "cmnd/sonoff5/POWER4",
-           "read": "stat/sonoff5/POWER4"
+           "read": "stat/sonoff5/POWER4",
+           "group": "lights"
         },
         {
            "name": "FishRoomHeater2",
            "write": "cmnd/sonoff6/POWER1",
-           "read": "stat/sonoff6/POWER1"
+           "read": "stat/sonoff6/POWER1",
+           "group": "env"
         }
    ]
 }

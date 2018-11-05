@@ -18,6 +18,7 @@ class App extends Component {
       //.get("https://jsonplaceholder.typicode.com/users")
       .get("http://192.168.1.80:8080/data")
       .then(response => {
+        var now = new Date();
         var newDataPoints = {};
         for(var i = 0, l = response.data.length; i < l; i++) {
            !(response.data[i].group in newDataPoints) && (newDataPoints[response.data[i].group] = [])
@@ -35,7 +36,8 @@ class App extends Component {
         // create a new "state" object without mutating
         // the original state object.
         const newState = Object.assign({}, this.state, {
-           datapoints: newDataPoints
+           datapoints: newDataPoints,
+           polltime: now.toLocaleString()
         });
 
         // store the new state object in the component's state
@@ -54,14 +56,18 @@ class App extends Component {
       <div className="App">
       <Column flexGrow={1}>
           <Row horizontal='center'>
-              <h1>HEADER</h1>
+              <h1>{this.state.polltime}</h1>
           </Row>
           <Row vertical='start'>
              {Object.entries(this.state.datapoints).map(([key, value]) => (
                 <Column flexGrow={1} key={key} horizontal='center'>
+                  <div className="datapoint">{key}</div>
                   <DataPointList key={key} datapoints={value} />
                 </Column>
              ))}
+             <Column flexGrow={1} horizontal='center'>
+                <div className="datapoint"><span>logs</span></div>
+             </Column>
           </Row>
       </Column>
       </div>

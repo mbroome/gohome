@@ -26,7 +26,7 @@ function DataPoint(props) {
 
   return (
     <div className="datapoint">
-      <span onClick={handleClick}>{props.name} => {props.value} => {props.type}</span>
+      <span onClick={handleClick}>{props.name} => {props.value}</span>
     </div>
   );
 }

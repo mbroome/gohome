@@ -8,6 +8,7 @@
     "react-scripts": "2.1.1",
     "prop-types": "*",
     "simple-flexbox": "*",
+    "react-tooltip": "*",
     "axios": "*"
   },
   "scripts": {

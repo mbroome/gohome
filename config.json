@@ -115,14 +115,14 @@
         {
            "name": "FishRoomLights3",
            "write": "cmnd/sonoff-s2/POWER1",
-           "read": "stat/sonoff-s2/POWER1",
+           "read": "stat/sonoff-s2/POWER",
            "type": "switch",
            "group": "lights"
         },
         {
            "name": "FishRoomInputFan",
            "write": "cmnd/sonoff-s4/POWER1",
-           "read": "stat/sonoff-s4/POWER1",
+           "read": "stat/sonoff-s4/POWER",
            "type": "switch",
            "group": "env"
         },

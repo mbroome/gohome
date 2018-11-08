@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import axios from "axios";
+import ReactTooltip from 'react-tooltip'
 import "./DataPoint.css";
 
 function DataPoint(props) {
@@ -26,7 +27,8 @@ function DataPoint(props) {
 
   return (
     <div className="datapoint">
-      <span onClick={handleClick}>{props.name} => {props.value}</span>
+      <ReactTooltip />
+      <span onClick={handleClick} data-tip={props.timestamp + " " + props.id}>{props.name} => {props.value}</span>
     </div>
   );
 }
